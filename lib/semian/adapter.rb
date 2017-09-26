@@ -8,9 +8,7 @@ module Semian
 
     def semian_resource
       @semian_resource ||= case semian_options
-      when false
-        UnprotectedResource.new(semian_identifier)
-      when nil
+      when nil, false
         Semian.logger.info("Semian is not configured for #{self.class.name}: #{semian_identifier}")
         UnprotectedResource.new(semian_identifier)
       else
@@ -46,7 +44,15 @@ module Semian
     def semian_options
       return @semian_options if defined? @semian_options
       options = raw_semian_options
-      @semian_options = options && options.map { |k, v| [k.to_sym, v] }.to_h
+      if semian_enabled?(options)
+        @semian_options = options && options.map { |k, v| [k.to_sym, v] }.to_h
+      else
+        nil
+      end
+    end
+
+    def semian_enabled?(options)
+      options && options['enable']
     end
 
     def raw_semian_options
