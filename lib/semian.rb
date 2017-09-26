@@ -13,6 +13,7 @@ require 'semian/unprotected_resource'
 require 'semian/simple_sliding_window'
 require 'semian/simple_integer'
 require 'semian/simple_state'
+require 'semian/simple_error'
 
 #
 # === Overview
@@ -88,6 +89,7 @@ module Semian
   TimeoutError = Class.new(BaseError)
   InternalError = Class.new(BaseError)
   OpenCircuitError = Class.new(BaseError)
+  StateTransitionError = Class.new(BaseError)
 
   def issue_disabled_semaphores_warning
     return if defined?(@warning_issued)
@@ -113,7 +115,31 @@ module Semian
 
   attr_accessor :logger
 
-  self.logger = Logger.new(STDERR)
+  class LoggerPatch
+
+    def info(str)
+      log_to_new_relic(str)
+    end
+
+    def log_to_new_relic str
+      error = nil
+
+      if str == "Throwing Open Circuit Error"
+        error = OpenCircuitError.new
+        str = str + " #{Time.now}"
+      elsif str.include? "State transition from"
+        error = StateTransitionError.new
+      end
+
+      Rails.logger.info(str)
+
+      if error
+        NewRelic::Agent.notice_error(error, {:message => "#{str}"})
+      end
+    end
+  end
+
+  self.logger = LoggerPatch.new
 
   # Registers a resource.
   #
@@ -245,6 +271,7 @@ module Semian
       error_timeout: options[:error_timeout],
       exceptions: Array(exceptions) + [::Semian::BaseError],
       implementation: implementation,
+      dryrun: options[:dryrun].nil? ? true : options[:dryrun]
     )
   end
 
