@@ -54,7 +54,7 @@ module Semian
     end
 
     def mark_failed(_error)
-      Semian.logger.info("Marking resource failure in Semian - #{_error.class.name} : #{_error.message}")
+      Semian.logger.info("Marking resource failure in Semian for [#{@name}]- #{_error.class.name} : #{_error.message}")
       @errors.increment
       set_last_error_time
       if closed?
@@ -125,7 +125,7 @@ module Semian
     def log_state_transition(new_state, occur_time)
       return if @state.nil? || new_state == @state.value
 
-      str = "[#{self.class.name}] State transition from #{@state.value} to #{new_state} at #{occur_time}."
+      str = "[#{self.class.name}] State transition for [#{@name}] from #{@state.value} to #{new_state} at #{occur_time}."
       str << " success_count=#{@successes.value} error_count=#{@errors.value}"
       str << " success_count_threshold=#{@success_count_threshold} error_count_threshold=#{@error_count_threshold}"
       str << " error_timeout=#{@error_timeout} error_last_at=\"#{@errors.last_error_time ? Time.at(@errors.last_error_time) : ''}\""
