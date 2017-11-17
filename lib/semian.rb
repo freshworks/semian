@@ -131,6 +131,7 @@ module Semian
         error = StateTransitionError.new
       end
 
+      str = str + ". PID: #{Process.pid}"
       Rails.logger.info(str)
 
       if error
