@@ -76,7 +76,6 @@ module Semian
       end
       result
     rescue ResourceBusyError, CircuitOpenError, PingFailure => e
-      Semian.logger.info("Mysql ping failed with error - #{e.class.name} : #{e.message}")
       false
     end
 
