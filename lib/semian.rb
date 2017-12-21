@@ -89,7 +89,8 @@ module Semian
   TimeoutError = Class.new(BaseError)
   InternalError = Class.new(BaseError)
   OpenCircuitError = Class.new(BaseError)
-  StateTransitionError = Class.new(BaseError)
+  DryRunOpenCircuitNotice = Class.new(BaseError)
+  StateTransitionNotice = Class.new(BaseError)
 
   def issue_disabled_semaphores_warning
     return if defined?(@warning_issued)
@@ -124,11 +125,11 @@ module Semian
     def log_to_new_relic str
       error = nil
 
-      if str == "Throwing Open Circuit Error"
-        error = OpenCircuitError.new
+      if str.include? "Throwing Open Circuit Error"
+        error = DryRunOpenCircuitNotice.new
         str = str + " #{Time.now}"
-      elsif str.include? "State transition from"
-        error = StateTransitionError.new
+      elsif str.include? "State transition"
+        error = StateTransitionNotice.new
       end
 
       str = str + ". PID: #{Process.pid}"
