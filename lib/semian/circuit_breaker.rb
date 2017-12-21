@@ -69,6 +69,7 @@ module Semian
       @errors.reset
       return unless half_open?
       @successes.increment
+      Semian.logger.info("Incrementing success. Success count is #{@successes.value}.")
       close if success_threshold_reached?
     end
 
