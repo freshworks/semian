@@ -19,16 +19,17 @@ module Semian
       @state = implementation::State.new
     end
 
-    # Conditions to check with dryrun
-    # In open state should not calle mark_failed, mark_success.
-    # mark_success should only be called during half_open state.
+    # Conditions to be sure with dryrun -
+    # In open state should not call mark_failed, mark_success.
+    # In closed state Errors should be reset when there only few failures which are followed by a success.
+    # Success threshold increment and state transition to closed should only be done in half_open state.
 
     def acquire
       half_open if open? && error_timeout_expired?
 
       unless request_allowed?
         if @dryrun
-          Semian.logger.info("Throwing Open Circuit Error")
+          Semian.logger.info("Dryrun message: Throwing Open Circuit Error for [#{@name}]")
         else
           raise OpenCircuitError
         end
@@ -54,8 +55,8 @@ module Semian
     end
 
     def mark_failed(_error)
-      Semian.logger.info("Marking resource failure in Semian for [#{@name}]- #{_error.class.name} : #{_error.message}")
       @errors.increment
+      Semian.logger.info("Errors count is #{@errors.value}. Marking resource failure in Semian for [#{@name}]- #{_error.class.name} : #{_error.message}")
       set_last_error_time
       if closed?
         open if error_threshold_reached?
@@ -65,8 +66,8 @@ module Semian
     end
 
     def mark_success
-      return unless half_open?
       @errors.reset
+      return unless half_open?
       @successes.increment
       close if success_threshold_reached?
     end
@@ -95,7 +96,7 @@ module Semian
     def open
       log_state_transition(:open, Time.now)
       @state.open
-      #@errors.reset # Not needed because the next state it going to be half_open and reset there.
+      #@errors.reset # Not needed, the next state is half_open and reset happens there.
     end
 
     def half_open
