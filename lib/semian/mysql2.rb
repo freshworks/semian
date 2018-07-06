@@ -26,6 +26,7 @@ module Semian
       /Too many connections/i,
       /closed MySQL connection/i,
       /MySQL client is not connected/i,
+      /Unknown MySQL server host/i
     )
 
     TIMEOUT_ERROR = Regexp.union(
