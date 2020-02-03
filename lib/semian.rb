@@ -133,7 +133,7 @@ module Semian
       end
 
       str = str + ". PID: #{Process.pid}"
-      Rails.logger.info(str)
+      Rails.logger.info(str) if defined?(Rails.logger)
 
       if error
         NewRelic::Agent.notice_error(error, {:message => "#{str}"})
