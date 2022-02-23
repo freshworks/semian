@@ -90,7 +90,7 @@ module Semian
       [
         ::Redis::BaseConnectionError,
         ::Errno::EINVAL, # Hiredis bug: https://github.com/redis/hiredis-rb/issues/21
-        ::Redis::OutOfMemoryError,
+        # ::Redis::OutOfMemoryError,
       ]
     end
 
