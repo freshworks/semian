@@ -12,8 +12,13 @@ class Redis
     end
   end
 
+  class OutOfMemoryError < Redis::CommandError
+    include ::Semian::AdapterError
+  end
+
   ResourceBusyError = Class.new(SemianError)
   CircuitOpenError = Class.new(SemianError)
+  ResolveError = Class.new(SemianError)
 
   alias_method :_original_initialize, :initialize
 
@@ -41,6 +46,7 @@ module Semian
 
     ResourceBusyError = ::Redis::ResourceBusyError
     CircuitOpenError = ::Redis::CircuitOpenError
+    ResolveError = ::Redis::ResolveError
 
     # The naked methods are exposed as `raw_query` and `raw_connect` for instrumentation purpose
     def self.included(base)
@@ -60,11 +66,22 @@ module Semian
     end
 
     def io(&block)
-      acquire_semian_resource(adapter: :redis, scope: :query) { raw_io(&block) }
+      acquire_semian_resource(adapter: :redis, scope: :query) do
+        reply = raw_io(&block)
+        raise_if_out_of_memory(reply)
+        reply
+      end
     end
 
     def connect
-      acquire_semian_resource(adapter: :redis, scope: :connection) { raw_connect }
+      acquire_semian_resource(adapter: :redis, scope: :connection) do
+        begin
+          raw_connect
+        rescue SocketError, RuntimeError => e
+          raise ResolveError.new(semian_identifier) if dns_resolve_failure?(e.cause || e)
+          raise
+        end
+      end
     end
 
     private
@@ -73,7 +90,6 @@ module Semian
       [
         ::Redis::BaseConnectionError,
         ::Errno::EINVAL, # Hiredis bug: https://github.com/redis/hiredis-rb/issues/21
-        ::SocketError,
         ::Redis::OutOfMemoryError,
       ]
     end
@@ -81,6 +97,16 @@ module Semian
     def raw_semian_options
       return options[:semian] if options.key?(:semian)
       return options['semian'.freeze] if options.key?('semian'.freeze)
+    end
+
+    def raise_if_out_of_memory(reply)
+      return unless reply.is_a?(::Redis::CommandError)
+      return unless reply.message =~ /OOM command not allowed when used memory > 'maxmemory'\.\s*\z/
+      raise ::Redis::OutOfMemoryError.new(reply.message)
+    end
+
+    def dns_resolve_failure?(e)
+      e.to_s.match?(/(can't resolve)|(name or service not known)|(nodename nor servname provided, or not known)|(failure in name resolution)/i)
     end
   end
 end
