@@ -135,9 +135,12 @@ module Semian
       str = str + ". PID: #{Process.pid}"
       Rails.logger.info(str) if Rails.logger
 
+      Rails.logger.info("Recording into new relic - Before if block")
       if error
-        NewRelic::Agent.notice_error(error, {:message => "#{str}"})
+        Rails.logger.info("Recording into new relic -> #{str}")
+        # NewRelic::Agent.notice_error(error, {:message => "#{str}"})
       end
+      Rails.logger.info("Recording into new relic - After if block")
     end
   end
 
