@@ -7,6 +7,12 @@ update_ticket_count(update_ticket_count_t *tc);
 static int
 calculate_quota_tickets(int sem_id, double quota);
 
+extern VALUE eSyscall;
+extern VALUE eTimeout;
+extern VALUE eInternal;
+extern VALUE id_timeout;
+extern int system_max_semaphore_count;
+
 // Must be called with the semaphore meta lock already acquired
 void
 configure_tickets(int sem_id, int tickets, double quota)

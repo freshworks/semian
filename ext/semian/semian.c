@@ -7,6 +7,12 @@ void Init_semian()
 
   cSemian = rb_const_get(rb_cObject, rb_intern("Semian"));
 
+  extern VALUE eSyscall;
+  extern VALUE eTimeout;
+  extern VALUE eInternal;
+  extern VALUE id_timeout;
+  extern int system_max_semaphore_count;
+
   /*
    * Document-class: Semian::Resource
    *
